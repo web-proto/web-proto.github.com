@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ログイン画面</title>
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body class="login-page">
+  <div class="login-container">
+    <h1>青翔開智コミュニティ(仮)</h1>
+    <form id="loginForm">
+      <input type="text" id="userID" placeholder="ID" required />
+      <input type="password" id="password" placeholder="パスワード" required />
+      <button type="submit">ログイン</button>
+      <p id="error-message" class="error-message"></p> 
+    </form>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAgZdnJ9Tptevqoa0S46T8FxNC2zKnK7rE",
+      authDomain: "my-memory-1acf4.firebaseapp.com",
+      projectId: "my-memory-1acf4",
+      storageBucket: "125628430923",
+      messagingSenderId: "",
+      appId: "1:125628430923:web:34b102c15d05cfb924ebce"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let initialCheckDone = false; // 初回チェック用フラグ
+
+    // すでにログインしている場合はトップページへ（初回のみ）
+    onAuthStateChanged(auth, (user) => {
+      if (!initialCheckDone) {
+        initialCheckDone = true;
+        if (user) {
+          window.location.href = "top.html";
+        }
+      }
+    });
+
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const userID = document.getElementById("userID").value.trim();
+      const password = document.getElementById("password").value;
+      const errorMessage = document.getElementById("error-message");
+      errorMessage.textContent = ""; // 前回のエラーをクリア
+
+      if (!userID || !password) {
+        errorMessage.textContent = "IDとパスワードを入力してください。";
+        return;
+      }
+
+      const email = `${userID}@example.com`;  // Firebase Authentication 上のメール形式
+
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Firestoreからポイント取得
+        const userDocRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userDocRef);
+
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          localStorage.setItem("userID", userID);   // 偽ID
+          localStorage.setItem("userUID", user.uid);
+          localStorage.setItem("points", data.points || 0);
+          window.location.href = "top.html";  // トップページ
+        } else {
+          errorMessage.textContent = "ユーザーデータが存在しません。";
+          await auth.signOut();
+        }
+
+      } catch (error) {
+        console.error("ログインエラー:", error);
+        errorMessage.textContent = "IDもしくはパスワードが間違っています";
+      }
+    });
+  </script>
+</body>
+</html>
