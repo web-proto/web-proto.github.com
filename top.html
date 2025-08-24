@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>トップ画面</title>
+  <link rel="stylesheet" href="top.css">
+</head>
+<body>
+  <header class="top-bar">
+    <div class="user-info">
+      <span id="user-id">ID : 読み込み中…</span>
+      <span id="user-points">ポイント : 読み込み中…</span>
+    </div>
+    <button id="logout-btn" style="
+      margin-left: 20px;
+      margin-right: 30px;
+      padding:5px 10px;
+      background-color:#f44336;
+      color:white;
+      border:none;
+      border-radius:4px;
+      cursor:pointer;
+    ">ログアウト</button>
+  </header>
+
+  <div id="top-menu">
+    <div class="main-content">
+      <section class="questions">
+        <h2>答えてみませんか？</h2>
+        <ul id="questionList"></ul>
+      </section>
+      <section class="answered-questions">
+        <h2>回答をチェック</h2>
+        <ul id="answeredQuestions"></ul>
+      </section>
+    </div>
+
+    <div class="topics-container">
+      <h2>トピックで探す</h2>
+      <dl class="topics">
+        <div class="topic-item">
+          <dt class="topic" data-topic="study">📚 学習</dt>
+          <dd data-topic="study">わからない問題・勉強法など</dd>
+        </div>
+        <dd class="subtopics" id="study">
+          <a href="questions.html?topic=japanese">国語</a>
+          <a href="questions.html?topic=math">数学</a>
+          <a href="questions.html?topic=english">英語</a>
+          <a href="questions.html?topic=science">理解</a>
+          <a href="questions.html?topic=socialStudies">社会</a>
+          <a href="questions.html?topic=inquiry">探究</a>
+          <a href="questions.html?topic=otherSubjects">副教科/その他</a>
+        </dd>
+
+        <div class="topic-item">
+          <dt class="topic" data-topic="mind">🩵 心理</dt>
+          <dd data-topic="mind">コンプレックスなど</dd>
+        </div>
+        <dd class="subtopics" id="mind">
+          <a href="questions.html?topic=personality">性格</a>
+          <a href="questions.html?topic=emotion">感情</a>
+        </dd>
+
+        <div class="topic-item">
+          <dt class="topic" data-topic="health">💪 健康</dt>
+          <dd data-topic="health">睡眠・ストレスなど</dd>
+        </div>
+        <dd class="subtopics" id="health">
+          <a href="questions.html?topic=lifestyle">生活習慣</a>
+          <a href="questions.html?topic=physicalCondition">体調管理</a>
+        </dd>
+
+        <div class="topic-item">
+          <dt class="topic" data-topic="society">👤 社会</dt>
+          <dd data-topic="society">人づきあい・学校行事など</dd>
+        </div>
+        <dd class="subtopics" id="society">
+          <a href="questions.html?topic=schoolLife">学校生活</a>
+          <a href="questions.html?topic=relationship">人間関係</a>
+        </dd>
+
+        <div class="topic-item">
+          <dt class="topic" data-topic="career">🏫 進路</dt>
+          <dd data-topic="career">進学先の探し方など</dd>
+        </div>
+        <dd class="subtopics" id="career">
+          <a href="questions.html?topic=college">大学</a>
+          <a href="questions.html?topic=exam">受験</a>
+        </dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- Firebase SDK & スクリプト -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import {
+      getFirestore, doc, collection, query, where,
+      orderBy, limit, getDocs, onSnapshot
+    } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAgZdnJ9Tptevqoa0S46T8FxNC2zKnK7rE",
+      authDomain: "my-memory-1acf4.firebaseapp.com",
+      projectId: "my-memory-1acf4",
+      storageBucket: "my-memory-1acf4.firebasestorage.app",
+      messagingSenderId: "125628430923",
+      appId: "1:125628430923:web:34b102c15d05cfb924ebce"
+     };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const userIdElem = document.getElementById("user-id");
+    const userPointsElem = document.getElementById("user-points");
+    const logoutBtn = document.getElementById("logout-btn");
+
+    // 🔹ログアウト処理
+    logoutBtn.addEventListener("click", async () => {
+      try {
+        await auth.signOut();
+        window.location.href = "index.html";
+      } catch (error) {
+        console.error("ログアウトエラー:", error);
+        alert("ログアウトに失敗しました。");
+      }
+    });
+
+    // 🔹ログイン状態監視
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+
+      const userUID = user.uid;
+      const userRef = doc(db, "users", userUID);
+
+      // Firestoreから偽IDとポイントを取得して表示
+      onSnapshot(userRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const fakeID = data.userID || "不明";
+          const points = data.points || 0;
+          userIdElem.textContent = `ID : ${fakeID}`;
+          userPointsElem.textContent = `ポイント : ${points}`;
+        } else {
+          userIdElem.textContent = "ID : データなし";
+          userPointsElem.textContent = "ポイント : データなし";
+        }
+      });
+
+      // 🔹自分の質問表示（最新5件）
+      async function loadMyQuestions() {
+        const answeredQuestionsElem = document.getElementById("answeredQuestions");
+        const q = query(
+          collection(db, "questions"),
+          where("userUID", "==", userUID),
+          orderBy("timestamp", "desc"),
+          limit(5)
+        );
+
+        try {
+          const snapshot = await getDocs(q);
+          answeredQuestionsElem.innerHTML = "";
+
+          if (snapshot.empty) {
+            answeredQuestionsElem.innerHTML = "<li>まだ質問していません。</li>";
+          } else {
+            snapshot.forEach(docSnap => {
+              const data = docSnap.data();
+              const a = document.createElement("a");
+              a.href = `question.html?id=${docSnap.id}`;
+              a.className = "question-box";
+
+              const p = document.createElement("p");
+              p.className = "question-title";
+              p.textContent = data.title || "タイトルなし";
+
+              a.appendChild(p);
+              const li = document.createElement("li");
+              li.appendChild(a);
+              answeredQuestionsElem.appendChild(li);
+            });
+          }
+        } catch (e) {
+          console.error("質問取得エラー:", e);
+          answeredQuestionsElem.innerHTML = "<li>質問の取得中にエラーが発生しました。</li>";
+        }
+      }
+
+      // 🔹未回答かつ他人の質問 → 答えてみませんか？
+      async function loadUnansweredQuestions() {
+        const listElem = document.getElementById("questionList");
+        try {
+          const questionsRef = collection(db, "questions");
+          const q = query(
+            questionsRef,
+            where("answerCount", "==", 0)
+            // .limit(100) // 必要に応じて最大件数を制限する場合
+          );
+
+          const snapshot = await getDocs(q);
+
+          const unanswered = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(q => q.userUID !== userUID);
+
+          if (unanswered.length === 0) {
+            listElem.innerHTML = "<li>まだ答えてほしい質問はありません。</li>";
+            return;
+          }
+
+          // JSでランダムに3件選ぶ
+          const shuffled = unanswered.sort(() => Math.random() - 0.5);
+          const toShow = shuffled.slice(0, 3);
+
+          listElem.innerHTML = "";
+          toShow.forEach(q => {
+            const a = document.createElement("a");
+            a.href = `question.html?id=${q.id}`;
+            a.className = "question-box";
+
+            const p = document.createElement("p");
+            p.className = "question-title";
+            p.textContent = q.title || "タイトルなし";
+
+            a.appendChild(p);
+            const li = document.createElement("li");
+            li.appendChild(a);
+            listElem.appendChild(li);
+          });
+
+        } catch (error) {
+          console.error("未回答質問の取得エラー:", error);
+          listElem.innerHTML = "<li>質問の取得中にエラーが発生しました。</li>";
+        }
+      }
+
+      loadMyQuestions();
+      loadUnansweredQuestions();
+    });
+
+    // 🔹トピック展開処理
+    document.addEventListener("DOMContentLoaded", () => {
+      const topics = document.querySelectorAll(".topic, dd[data-topic]");
+      topics.forEach(item => {
+        item.addEventListener("click", function () {
+          const subtopics = document.getElementById(this.dataset.topic);
+          if (subtopics) subtopics.classList.toggle("show");
+        });
+      });
+    });
+  </script>
+</body>
+</html>
