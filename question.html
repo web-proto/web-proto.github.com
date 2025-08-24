@@ -224,7 +224,7 @@ document.getElementById("submit-answer").addEventListener("click", async ()=>{
   const content = document.getElementById("answer-input").value.trim();
   if(!content){ alert("回答を入力してください"); return; }
 
-  const proceed = confirm("否定的/攻撃的な内容は含まれていませんか？(投稿内容は修正できません)");
+  const proceed = confirm("否定的/攻撃的な内容は含まれていませんか？\n(投稿内容は修正できません)");
   if (!proceed) return;
 
   await addDoc(collection(db,"questions",questionId,"answers"),{
