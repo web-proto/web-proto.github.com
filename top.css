@@ -1,0 +1,158 @@
+body{
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f2f2f2;
+      padding-top: 40px;
+    }
+
+.top-bar {
+      background-color: #2d5d34;
+      color: white;
+      padding: 10px 20px;
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .user-info span {
+      margin-right: 20px;
+      font-weight: bold;
+    }
+
+
+    #search {
+      width: 250px;
+      padding: 8px;
+      border-radius: 4px;
+      border: none;
+      font-size: 14px;
+    }
+
+    #top-menu {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 10px;
+    }
+
+    .main-content {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    section {
+      flex: 1 1 48%;
+      background-color: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      font-size: 20px;
+      margin-bottom: 10px;
+      color: #2d5d34;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    ul li {
+      background-color: #f9f9f9;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      transition: background-color 0.2s;
+    }
+
+    ul li:hover {
+      background-color: #e6f2e6;
+    }
+
+    ul li a {
+      text-decoration: none;
+      color: #333;
+      font-weight: bold;
+    }
+
+    .topics-container {
+      margin-top: 30px;
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .topic-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #ccc;
+      cursor: pointer;
+    }
+
+    .topic {
+      background-color: #e0f2f1;
+      padding: 6px 12px;
+      border-radius: 20px;
+      margin-right: 10px;
+      font-weight: bold;
+      color: #00796b;
+      flex-shrink: 0;
+    }
+
+    dd[data-topic] {
+      color: #666;
+      font-size: 14px;
+      margin-left: 5px;
+    }
+
+    .subtopics {
+      display: none;
+      background-color: #f5f5f5;
+      padding: 10px;
+      margin: 5px 0 10px 20px;
+      border-left: 3px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .subtopics.show {
+      display: block;
+    }
+
+    .subtopics a {
+      display: block;
+      padding: 5px;
+      color: #00796b;
+      text-decoration: none;
+    }
+
+    .subtopics a:hover {
+      text-decoration: underline;
+    }
+
+      section {
+        flex: 1 1 100%;
+      }
+
+      #search {
+        width: 100%;
+        margin-top: 10px;
+      }
+     .question-box {
+      display: block;
+    }
+    .question-title {
+      font-size: 16px;
+      font-weight: bold;
+      margin: 0;
+    }
