@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>質問詳細</title>
+  <link rel="stylesheet" href="question.css" />
+</head>
+<body>
+<div id="top-menu">
+  <header class="top-bar">
+    <div class="user-info">
+      <span id="user-id">ID : 読み込み中…</span>
+      <span id="user-points">ポイント : 読み込み中…</span>
+    </div>
+  </header>
+
+  <div class="question-container">
+    <section>
+      <h2 id="question-title">タイトル読み込み中...</h2>
+      <p id="question-content">本文読み込み中...</p>
+    </section>
+  </div>
+
+  <div class="answer-section">
+    <h3>回答を投稿する</h3>
+    <textarea id="answer-input" placeholder="回答を入力してください"></textarea>
+    <button id="submit-answer">送信</button>
+  </div>
+
+  <div class="answers-container">
+    <h3>回答一覧</h3>
+    <div id="answers-list"></div>
+    <button id="load-more-btn" style="display: none;">もっと見る</button>
+  </div>
+
+  <button id="go-top-detail">トップページに戻る</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+import { 
+  getFirestore, doc, getDoc, collection, query, orderBy, getDocs, addDoc, setDoc,
+  serverTimestamp, updateDoc, increment, onSnapshot, limit, startAfter
+} from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+
+// Firebase初期化
+const firebaseConfig = {
+     apiKey: "AIzaSyAgZdnJ9Tptevqoa0S46T8FxNC2zKnK7rE",
+     authDomain: "my-memory-1acf4.firebaseapp.com",
+     projectId: "my-memory-1acf4",
+     storageBucket: "my-memory-1acf4.firebasestorage.app",
+     messagingSenderId: "125628430923",
+     appId: "1:125628430923:web:34b102c15d05cfb924ebce"
+    };
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// HTML要素
+const userIdElem = document.getElementById("user-id");
+const userPointsElem = document.getElementById("user-points");
+const answersList = document.getElementById("answers-list");
+const loadMoreBtn = document.getElementById("load-more-btn");
+
+// ユーザー情報
+let currentUserUID = null; // ← いいねの判定/キーにもUIDを使用
+let currentUserID  = null; // 表示用の偽ID
+
+// 質問IDの取得（固定ではなくURLから）
+ const urlParams = new URLSearchParams(window.location.search);
+ const questionId = urlParams.get("id");
+ if(!questionId){
+   alert("質問が見つかりません");
+   throw new Error("質問IDなし");
+ }
+
+// 質問読み込み
+async function loadQuestion() {
+  const questionRef = doc(db,"questions",questionId);
+  const docSnap = await getDoc(questionRef);
+  if (docSnap.exists()) {
+    const data = docSnap.data();
+    document.getElementById("question-title").textContent = data.title ?? "";
+    document.getElementById("question-content").textContent = data.content ?? "";
+    const time = data.timestamp?.toDate?.()?.toLocaleString("ja-JP") || "日時不明";
+    const tsElem = document.createElement("small");
+    tsElem.textContent = time;
+    document.getElementById("question-content").after(tsElem);
+  } else {
+    alert("この質問は削除された可能性があります。");
+  }
+}
+
+// 回答読み込み
+const pageSize = 5;
+let lastAnswerCursor = null;
+let loadMoreBound = false;     // 重複登録防止
+let firstAnswersLoaded = false;
+
+async function loadAnswersPage() {
+  // 連打対策
+  loadMoreBtn.disabled = true;
+
+  const answersRef = collection(db,"questions",questionId,"answers");
+  const base = [orderBy("timestamp","desc"), limit(pageSize)];
+  const q = lastAnswerCursor
+    ? query(answersRef, orderBy("timestamp","desc"), startAfter(lastAnswerCursor), limit(pageSize))
+    : query(answersRef, ...base);
+
+  // 初回のみ描画領域リセット
+  if (!firstAnswersLoaded) {
+    answersList.innerHTML = "";
+  }
+
+  const snap = await getDocs(q);
+
+  if (snap.empty && !firstAnswersLoaded) {
+    answersList.innerHTML = "<div>まだ回答がありません。</div>";
+    loadMoreBtn.style.display = "none";
+    loadMoreBtn.disabled = false;
+    firstAnswersLoaded = true;
+    return;
+  }
+
+  // 1件ずつDOM生成
+  for (const d of snap.docs) {
+    const answer = { id: d.id, ...d.data() };
+    const div = document.createElement("div");
+    div.classList.add("answer");
+
+    const content = answer.content || "（内容なし）";
+    const timestamp = answer.timestamp?.toDate?.()?.toLocaleString("ja-JP") || "日時不明";
+
+    div.innerHTML = `
+      <p class="answer-content">${content}</p>
+      <small class="answer-timestamp">${timestamp}</small>
+      <div class="like-section"></div>
+      <hr>
+    `;
+
+    const likeSection = div.querySelector(".like-section");
+
+    // 「guest」廃止：UIDで判定 & 保存
+    if (currentUserUID && currentUserUID === answer.userUID) {
+      // 自分の回答
+      const info = document.createElement("span");
+      info.textContent = "（自分の回答）";
+      info.style.color = "gray";
+      likeSection.appendChild(info);
+    } else if (currentUserUID) {
+      // いいねボタン（ログイン済み）
+      const likeBtn = document.createElement("button");
+      likeBtn.classList.add("like-button");
+      likeBtn.title = "いいね";
+      likeBtn.innerHTML = `
+        <svg class="heart-icon" viewBox="0 0 24 24" width="24" height="24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
+                   2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09
+                   C13.09 3.81 14.76 3 16.5 3
+                   19.58 3 22 5.42 22 8.5
+                   c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+        </svg>`;
+
+      // 既に自分がいいね済みか確認（likes/{currentUserUID}）
+      const likeRef = doc(db,"questions",questionId,"answers",answer.id,"likes",currentUserUID);
+      const likedSnap = await getDoc(likeRef);
+      if (likedSnap.exists()) {
+        likeBtn.classList.add("liked");
+        likeBtn.disabled = true;
+      }
+
+      likeBtn.addEventListener("click", async () => {
+        const check = await getDoc(likeRef);
+        if (!check.exists()) {
+          await setDoc(likeRef, { timestamp: serverTimestamp() });
+          likeBtn.classList.add("liked");
+          likeBtn.disabled = true;
+
+          // ポイント加算（押した人に+1）※仕様に合わせて調整OK
+          try {
+            const meRef = doc(db, "users", currentUserUID);
+            await updateDoc(meRef, { points: increment(1) });
+          } catch (e) {
+            console.error("ポイント加算エラー:", e);
+          }
+        } else {
+          alert("すでにこの回答にいいねしています。");
+        }
+      });
+
+      likeSection.appendChild(likeBtn);
+    } else {
+      // 未ログイン
+      const info = document.createElement("span");
+      info.textContent = "（ログインするといいねできます）";
+      info.style.color = "gray";
+      likeSection.appendChild(info);
+    }
+
+    answersList.appendChild(div);
+  }
+
+  // 次ページ用カーソル更新
+  if (snap.docs.length > 0) {
+    lastAnswerCursor = snap.docs[snap.docs.length - 1];
+  }
+
+  // ボタンの表示/非表示
+  if (snap.size < pageSize) {
+    loadMoreBtn.style.display = "none";
+  } else {
+    loadMoreBtn.style.display = "block";
+  }
+
+  loadMoreBtn.disabled = false;
+  firstAnswersLoaded = true;
+}
+
+// 回答投稿
+document.getElementById("submit-answer").addEventListener("click", async ()=>{
+  const content = document.getElementById("answer-input").value.trim();
+  if(!content){ alert("回答を入力してください"); return; }
+
+  const proceed = confirm("否定的/攻撃的な内容は含まれていませんか？(投稿内容は修正できません)");
+  if (!proceed) return;
+
+  await addDoc(collection(db,"questions",questionId,"answers"),{
+    content,
+    timestamp: serverTimestamp(),
+    userID: currentUserID,      // 表示用
+    userUID: currentUserUID     // 識別用
+  });
+
+  const questionRef = doc(db,"questions",questionId);
+  await updateDoc(questionRef,{ answerCount: increment(1) });
+
+  if(currentUserUID){
+    const userDocRef = doc(db,"users",currentUserUID);
+    await updateDoc(userDocRef,{ points: increment(3) }).catch(console.error);
+  }
+
+  alert("回答を投稿しました");
+  window.location.reload();
+});
+
+// トップページに戻る
+document.getElementById("go-top-detail").addEventListener("click", ()=>{
+  window.location.href="top.html";
+});
+
+// 初期ロード
+let initialLoaded = false;
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "index.html";
+    return;
+  }
+
+  currentUserUID = user.uid;
+
+  const userDocRef = doc(db, "users", currentUserUID);
+  onSnapshot(userDocRef, (docSnap) => {
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      currentUserID = data.userID || "不明"; // 表示用
+      const points = data.points || 0;
+      userIdElem.textContent = `ID : ${currentUserID}`;
+      userPointsElem.textContent = `ポイント : ${points}`;
+
+      // 初回のみロード実行
+      if (!initialLoaded) {
+        initialLoaded = true;
+        loadQuestion();
+        loadAnswersPage();
+
+        // 重複防止：onSnapshotが再発火しても上書きで1本だけ
+        loadMoreBtn.onclick = () => loadAnswersPage();
+      }
+    } else {
+      userIdElem.textContent = "ID : データなし";
+      userPointsElem.textContent = "ポイント : データなし";
+    }
+  }, (error) => {
+    console.error("ユーザーデータ読み込みエラー:", error);
+  });
+});
+</script>
+</body>
+</html>
