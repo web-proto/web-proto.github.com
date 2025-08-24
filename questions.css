@@ -1,0 +1,148 @@
+body {
+  font-family: sans-serif;
+  background-color: #f0f0f0;
+  margin: 0;
+  padding: 0;
+  padding-top: 40px;
+}
+
+.top-bar {
+      background-color: #2d5d34;
+      color: white;
+      padding: 10px 20px;
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .user-info span {
+      margin-right: 20px;
+      font-weight: bold;
+    }
+
+#topic-title {
+  font-size: 1.8rem;
+  color: #2d5d34;
+  border-bottom: 3px solid #27ae60;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  font-weight: 700;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.search-box {
+  margin: 10px 0 20px;
+  text-align: left;
+  width: 90%;
+  max-width: 500px;
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.container {
+  margin: 20px;
+}
+
+.question-container,
+.post-form {
+  background-color: #f9f9f9;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+h1, h2 {
+  font-size: 22px;
+  margin-bottom: 10px;
+  color: #2d5d34;
+}
+
+textarea,
+input[type="text"] {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+button {
+  background-color: #00796b;
+  color: white;
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.question-box strong {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+   .question-box {
+     display: block;           /* ボックス全体をクリック可能に */
+     background-color: white;
+     padding: 12px;
+     margin-bottom: 10px;
+     border: 1px solid #ccc;
+     border-radius: 8px;
+     text-decoration: none;    /* 下線消す */
+     color: black;             /* テキスト色 */
+     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+     transition: transform 0.1s;
+   }
+
+   .question-box:hover {
+     transform: scale(1.02);   /* 軽いホバー効果 */
+   }
+
+.question-box p {
+  margin: 0;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.question-box small {
+  color: gray;
+}
+
+#load-more {
+  display: block;
+  padding: 8px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  align-items: left;
+}
+
+#go-top-detail {
+     display: block;
+     margin: 20px auto;
+     padding: 10px 20px;
+     background-color: #4CAF50;
+     color: white;
+     border: none;
+     border-radius: 5px;
+     cursor: pointer;
+     font-size: 16px;
+   }
+#go-top-detail:hover {
+     background-color: #45a049;
+   }
