@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/algoliasearch/dist/algoliasearch-lite.umd.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>質問一覧</title>
+  <link rel="stylesheet" href="questions.css">
+</head>
+<body>
+
+<div id="top-menu">
+  <header class="top-bar">
+    <div class="user-info">
+      <span id="user-id">ID : 読み込み中…</span>
+      <span id="user-points">ポイント : 読み込み中…</span>
+    </div>
+  </header>
+
+  <div class="container">
+    <h2 id="topic-title">投稿された質問</h2>
+
+    <!-- 検索窓 -->
+    <input type="text" id="searchBox" placeholder="質問を検索" />
+    <ul id="results"></ul>
+
+    <!-- 質問投稿フォーム -->
+    <div class="post-form" id="post-form">
+      <h2>新しい質問を投稿</h2>
+      <input type="text" id="new-title" placeholder="質問のタイトル" />
+      <textarea id="new-content" placeholder="質問内容"></textarea>
+      <button id="post-question">投稿する</button>
+    </div>
+
+    <!-- 質問一覧 -->
+    <div class="question-container">
+      <h2>投稿された質問</h2>
+      <div id="question-list">読み込み中...</div>
+      <button id="load-more" style="display: none;">もっと見る</button>
+    </div>
+
+    <!-- トップページに戻るボタン -->
+    <button id="go-top-detail">トップページに戻る</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+import { 
+  getFirestore, collection, doc, setDoc, getDoc, query, where, orderBy, getDocs, startAfter, limit, serverTimestamp, onSnapshot, updateDoc, increment 
+} from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+
+const firebaseConfig = {
+      apiKey: "AIzaSyAgZdnJ9Tptevqoa0S46T8FxNC2zKnK7rE",
+      authDomain: "my-memory-1acf4.firebaseapp.com",
+      projectId: "my-memory-1acf4",
+      storageBucket: "my-memory-1acf4.firebasestorage.app",
+      messagingSenderId: "125628430923",
+      appId: "1:125628430923:web:34b102c15d05cfb924ebce"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+const postForm = document.getElementById("post-form");
+const userIdElem = document.getElementById("user-id");
+const userPointsElem = document.getElementById("user-points");
+const questionList = document.getElementById("question-list");
+const loadMoreBtn = document.getElementById("load-more");
+
+let currentUserUID = null;
+let lastVisible = null;
+const pageSize = 5;
+
+const params = new URLSearchParams(window.location.search);
+const topic = params.get("topic") || "math";
+const topicMap = { japanese: "国語", math: "数学", science: "理解", socialStudies: "社会", english: "英語", otherSubjects: "その他の教科", personality: "性格", emotion: "感情", lifestyle: "生活習慣", physicalCondition: "体調管理", inquiry: "探究", schoolLife: "学校生活", relationship: "人間関係", college: "大学", exam: "受験"};
+document.getElementById("topic-title").textContent = `${topicMap[topic] || topic}についての質問一覧`;
+
+// 🔐 ログイン監視 + 偽ID・ポイント表示
+onAuthStateChanged(auth, (user) => {
+  if (!user) { window.location.href="index.html"; return; }
+  currentUserUID = user.uid;
+
+  const userDocRef = doc(db, "users", currentUserUID);
+  onSnapshot(userDocRef, (docSnap) => {
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      userIdElem.textContent = `ID : ${data.userID || "不明"}`;
+      userPointsElem.textContent = `ポイント : ${data.points || 0}`;
+    } else {
+      userIdElem.textContent = "ID : データなし";
+      userPointsElem.textContent = "ポイント : データなし";
+    }
+  });
+});
+
+// 📝 質問投稿
+document.getElementById("post-question").addEventListener("click", async () => {
+  const title = document.getElementById("new-title").value.trim();
+  const content = document.getElementById("new-content").value.trim();
+  if (!title || !content) { alert("全ての欄を入力してください"); return; }
+  if (!currentUserUID) { alert("ログイン状態を確認できません"); return; }
+
+  const docRef = doc(collection(db, "questions"));
+  await setDoc(docRef, { uid: docRef.id, userUID: currentUserUID, title, content, topic, timestamp: serverTimestamp(), answerCount: 0 });
+
+  // 投稿ボーナス加算
+  try { await updateDoc(doc(db,"users",currentUserUID),{points: increment(3)}); } 
+  catch(e){ console.error("ポイント加算エラー:",e); }
+
+  alert("質問を投稿しました！");
+  location.reload();
+});
+
+// 🔎 通常の質問取得（ページネーション）
+async function loadQuestions() {
+  const q = lastVisible
+    ? query(collection(db,"questions"), where("topic","==",topic), orderBy("timestamp","desc"), startAfter(lastVisible), limit(pageSize))
+    : query(collection(db,"questions"), where("topic","==",topic), orderBy("timestamp","desc"), limit(pageSize));
+
+  const snapshot = await getDocs(q);
+  if (snapshot.empty && !lastVisible) { questionList.innerHTML="<p>まだ質問がありません</p>"; loadMoreBtn.style.display="none"; return; }
+
+  const questions = snapshot.docs.map(docSnap => {
+    const data = docSnap.data();
+    data.answerCount = data.answerCount || 0;
+    return data;
+  });
+
+  displayQuestions(questions, lastVisible===null);
+  lastVisible = snapshot.docs[snapshot.docs.length-1];
+  loadMoreBtn.style.display = snapshot.docs.length<pageSize?"none":"block";
+}
+
+// 📄 質問表示
+function displayQuestions(questions,isFirstPage=false){
+  if(isFirstPage) questionList.innerHTML="";
+  questions.forEach(data=>{
+    const { uid, title, content, timestamp, answerCount } = data;
+    const time = timestamp?.toDate?.().toLocaleString("ja-JP") || "日時不明";
+    const link = document.createElement("a");
+    link.href = `question.html?id=${uid}`;
+    link.classList.add("question-box");
+    link.innerHTML = `<strong>${title}</strong><p>${content}</p><small>${time} | 回答数: ${answerCount}</small>`;
+    questionList.appendChild(link);
+  });
+}
+
+// 🔍 Algolia 検索 + ページネーション対応
+const client = algoliasearch('2JACQDV4QE', 'af805841b2009f177c0f3b80b38aa182');
+const index = client.initIndex('questions');
+
+let searchResults = [];
+let currentIndex = 0;
+const searchPageSize = 5;
+
+async function performSearch(queryText){
+  const result = await index.search(queryText,{filters:`topic:"${topic}"`});
+  const hits = result.hits;
+  searchResults = await Promise.all(hits.map(async hit=>{
+    const snap = await getDoc(doc(db,"questions",hit.objectID));
+    if(!snap.exists()) return null;
+    const data = snap.data();
+    data.answerCount = data.answerCount || 0;
+    return data;
+  }));
+  searchResults = searchResults.filter(Boolean);
+  currentIndex=0;
+  questionList.innerHTML="";
+  displaySearchResults();
+}
+
+function displaySearchResults(){
+  const slice = searchResults.slice(currentIndex,currentIndex+searchPageSize);
+  displayQuestions(slice,currentIndex===0);
+  currentIndex += slice.length;
+  loadMoreBtn.style.display = currentIndex<searchResults.length?"block":"none";
+}
+
+document.getElementById('searchBox').addEventListener('input', async (e)=>{
+  const queryText = e.target.value.trim();
+  if(queryText===''){ 
+    lastVisible=null; questionList.innerHTML="読み込み中..."; loadMoreBtn.style.display="none"; postForm.style.display="block"; loadQuestions(); return; 
+  }
+  postForm.style.display="none";
+  performSearch(queryText);
+});
+
+// 「もっと見る」ボタン
+loadMoreBtn.addEventListener("click", ()=>{
+  if(searchResults.length>0) displaySearchResults();
+  else loadQuestions();
+});
+
+// トップページに戻る
+document.getElementById("go-top-detail").addEventListener("click",()=>{
+  window.location.href="top.html";
+});
+
+// 初期表示
+loadQuestions();
+</script>
+</body>
+</html>
