@@ -7,131 +7,121 @@ body {
 }
 
 .top-bar {
-      background-color: #2d5d34;
-      color: white;
-      padding: 10px 20px;
-      position: fixed;
-      top: 0;
-      width: 100%;
-      z-index: 100;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    }
-
-    .user-info span {
-      margin-right: 20px;
-      font-weight: bold;
-    }
-
-#topic-title {
-  font-size: 1.8rem;
-  color: #2d5d34;
-  border-bottom: 3px solid #27ae60;
-  padding-bottom: 8px;
-  margin-bottom: 20px;
-  font-weight: 700;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  width: fit-content;
+  background-color: #2d5d34;
+  color: white;
+  padding: 10px 20px;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-.search-box {
-  margin: 10px 0 20px;
-  text-align: left;
-  width: 90%;
-  max-width: 500px;
-  padding: 10px;
-  font-size: 16px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
+.user-info span {
+  margin-right: 20px;
+  font-weight: bold;
 }
 
-.container {
+#top-menu {
+  margin: 0;
+}
+
+.question-container, .answer-section, .answers-container {
   margin: 20px;
-}
-
-.question-container,
-.post-form {
-  background-color: #f9f9f9;
   padding: 15px;
   border-radius: 10px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: #f9f9f9;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-h1, h2 {
+h2, h3 {
   font-size: 22px;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
   color: #2d5d34;
 }
 
-textarea,
-input[type="text"] {
+textarea {
   width: 100%;
+  height: 100px;
   padding: 10px;
-  font-size: 16px;
-  margin-top: 5px;
-  border: 1px solid #ccc;
   border-radius: 5px;
-  box-sizing: border-box;
+  border: 1px solid #ccc;
+  font-size: 16px;
 }
 
 button {
   background-color: #00796b;
   color: white;
-  padding: 10px 20px;
-  font-size: 16px;
+  padding: 10px 16px;
   border: none;
   border-radius: 5px;
-  margin-top: 10px;
   cursor: pointer;
+  margin-top: 10px;
+  font-size: 16px;
+  transition: background-color 0.3s;
 }
 
-.question-box strong {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 4px;
-  word-break: break-word;
+button:hover {
+  background-color: #00695c;
 }
 
-   .question-box {
-     display: block;
-     background-color: white;
-     padding: 12px;
-     margin-bottom: 10px;
-     border: 1px solid #ccc;
-     border-radius: 8px;
-     text-decoration: none;
-     color: black;
-     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-     transition: transform 0.1s;
-   }
-
-   .question-box:hover {
-     transform: scale(1.02);
-   }
-
-.question-box p {
-  margin: 0;
-  word-break: break-word;
-  line-height: 1.4;
+.like-section {
+  margin-top: 10px;
 }
 
-.question-box small {
+.like-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 5px;
+}
+
+.heart-icon {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: black;
+  stroke-width: 2;
+  transition: fill 0.3s ease, stroke 0.3s ease;
+}
+
+.liked .heart-icon {
+  fill: pink;
+  stroke: pink;
+}
+
+.answer {
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+}
+
+.answer-content {
+  font-size: 16px;
+  color: #333;
+}
+
+.answer-timestamp {
+  font-size: 12px;
   color: gray;
 }
 
-#load-more {
-  display: block;
-  padding: 8px 20px;
-  font-size: 16px;
-  cursor: pointer;
-  align-items: left;
+hr {
+  border: none;
+  border-top: 1px solid #ccc;
+  margin: 15px 0;
 }
-
+.like-button.liked svg {
+  fill: pink;
+}
+.like-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 #go-top-detail {
   position: fixed !important;
   bottom: 20px !important;
@@ -158,19 +148,29 @@ button {
 #go-top-detail:hover {
   background-color: #45a049;
 }
-    #searchButton, #clearSearchButton {
-      margin-left: 5px;
-      padding: 6px 12px;
-      font-size: 14px;
-      border: none;
-      border-radius: 4px;
-      background-color: #4CAF50;
-      color: white;
-      cursor: pointer;
-    }
-    #searchButton:hover, #clearSearchButton:hover {
-      background-color: #45a049;
-    }
-    #clearSearchButton {
-      display: none;
-    }
+#go-topic-list {
+  position: fixed !important;
+  bottom: 90px !important;   /* ← トップボタンの上に並ぶ */
+  right: 20px !important;
+  width: 60px !important;
+  height: 60px !important;
+  border-radius: 50% !important;
+  background-color: #2196F3 !important;
+  color: white !important;
+  border: none !important;
+  font-size: 13px !important;
+  font-weight: bold !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  line-height: 1.2 !important;
+  margin-top: 0 !important;
+  padding: 0 !important;
+  z-index: 200 !important;
+}
+#go-topic-list:hover {
+  background-color: #1976D2 !important;
+}
