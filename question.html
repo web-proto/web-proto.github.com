@@ -35,7 +35,8 @@
     <button id="load-more-btn" style="display: none;">もっと見る</button>
   </div>
 
-  <button id="go-top-detail">トップページに戻る</button>
+  <button id="go-topic-list">トピックに戻る</button>
+  <button id="go-top-detail">トップに戻る</button>
 </div>
 
 <script type="module">
@@ -69,7 +70,7 @@ const answerSection = document.getElementById("answer-section");
 // ユーザー情報
 let currentUserUID = null;
 let currentUserID  = null;
-let questionOwnerUID = null;
+let questionOwnerUID = null; // ← 質問者UIDを保持
 
 // 質問IDの取得
   const urlParams = new URLSearchParams(window.location.search);
@@ -78,6 +79,8 @@ let questionOwnerUID = null;
    alert("質問が見つかりません");
    throw new Error("質問IDなし");
  }
+
+let questionTopic = null;
 
 // 質問読み込み
 async function loadQuestion() {
@@ -92,10 +95,10 @@ async function loadQuestion() {
     tsElem.textContent = time;
     document.getElementById("question-content").after(tsElem);
 
-    // 質問者UIDを記録
     questionOwnerUID = data.userUID || null;
 
-    // 質問者本人なら回答投稿欄を非表示
+    questionTopic = data.topic || null;
+
     if (currentUserUID && currentUserUID === questionOwnerUID) {
       answerSection.style.display = "none";
     }
@@ -195,6 +198,9 @@ document.getElementById("submit-answer").addEventListener("click", async ()=>{
     userUID: currentUserUID
   });
 
+  const proceed = confirm("否定的/攻撃的な内容は含まれていませんか？\n(投稿内容は修正できません)");
+  if (!proceed) return;
+
   await updateDoc(doc(db,"questions",questionId),{ answerCount: increment(1) });
 
   if(currentUserUID){
@@ -208,6 +214,15 @@ document.getElementById("submit-answer").addEventListener("click", async ()=>{
 // トップへ戻る
 document.getElementById("go-top-detail").addEventListener("click", ()=>{
   window.location.href="top.html";
+});
+
+// 一覧へ戻る
+document.getElementById("go-topic-list").addEventListener("click", ()=>{
+  if (questionTopic) {
+    window.location.href = `questions.html?topic=${encodeURIComponent(questionTopic)}`;
+  } else {
+    alert("トピック情報が見つかりません");
+  }
 });
 
 // 初期ロード
