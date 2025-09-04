@@ -214,9 +214,9 @@
             return;
           }
 
-          // JSでランダムに3件選ぶ
+          // JSでランダムに5件選ぶ
           const shuffled = unanswered.sort(() => Math.random() - 0.5);
-          const toShow = shuffled.slice(0, 3);
+          const toShow = shuffled.slice(0, 5);
 
           listElem.innerHTML = "";
           toShow.forEach(q => {
