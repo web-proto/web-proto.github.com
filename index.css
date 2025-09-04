@@ -11,7 +11,7 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background-image: url('IMG_1619.jpeg'); /* 背景画像 */
+    background-image: url('IMG_1619.png');
     background-size: cover;
     background-position: center;
 }
