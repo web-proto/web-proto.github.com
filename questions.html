@@ -20,8 +20,12 @@
   <div class="container">
     <h2 id="topic-title">投稿された質問</h2>
 
-    <!-- 検索窓 -->
-    <input type="text" id="searchBox" placeholder="質問を検索" />
+    <!-- 検索窓 + ボタン -->
+    <div>
+      <input type="text" id="searchBox" placeholder="質問を検索" />
+      <button id="searchButton">検索</button>
+      <button id="clearSearchButton">検索解除</button>
+    </div>
     <ul id="results"></ul>
 
     <!-- 質問投稿フォーム -->
@@ -40,7 +44,7 @@
     </div>
 
     <!-- トップページに戻るボタン -->
-    <button id="go-top-detail">トップページに戻る</button>
+    <button id="go-top-detail">トップに戻る</button>
   </div>
 </div>
 
@@ -69,6 +73,7 @@ const userIdElem = document.getElementById("user-id");
 const userPointsElem = document.getElementById("user-points");
 const questionList = document.getElementById("question-list");
 const loadMoreBtn = document.getElementById("load-more");
+const clearSearchBtn = document.getElementById("clearSearchButton");
 
 let currentUserUID = null;
 let lastVisible = null;
@@ -171,6 +176,9 @@ async function performSearch(queryText){
   currentIndex=0;
   questionList.innerHTML="";
   displaySearchResults();
+
+  // 検索解除ボタンを表示
+  clearSearchBtn.style.display = "inline-block";
 }
 
 function displaySearchResults(){
@@ -180,14 +188,29 @@ function displaySearchResults(){
   loadMoreBtn.style.display = currentIndex<searchResults.length?"block":"none";
 }
 
-document.getElementById('searchBox').addEventListener('input', async (e)=>{
-  const queryText = e.target.value.trim();
+// 🔎 ボタンで検索を実行
+document.getElementById('searchButton').addEventListener('click', ()=>{
+  const queryText = document.getElementById('searchBox').value.trim();
   if(queryText===''){ 
-    lastVisible=null; questionList.innerHTML="読み込み中..."; loadMoreBtn.style.display="none"; postForm.style.display="block"; loadQuestions(); return; 
+    resetSearch();
+    return; 
   }
   postForm.style.display="none";
   performSearch(queryText);
 });
+
+// 🔄 検索解除ボタン
+function resetSearch(){
+  document.getElementById('searchBox').value = "";
+  lastVisible=null; 
+  questionList.innerHTML="読み込み中..."; 
+  loadMoreBtn.style.display="none"; 
+  postForm.style.display="block"; 
+  clearSearchBtn.style.display="none"; // 検索解除ボタンを非表示
+  loadQuestions(); 
+}
+
+clearSearchBtn.addEventListener('click', resetSearch);
 
 // 「もっと見る」ボタン
 loadMoreBtn.addEventListener("click", ()=>{
