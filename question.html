@@ -60,6 +60,25 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
+// トピックマッピング
+const topicMap = {
+  "japanese": "study",
+  "math": "study",
+  "english": "study",
+  "science": "study",
+  "socialStudies": "study",
+  "inquiry": "study",
+  "otherSubjects": "study",
+  "personality": "mind",
+  "emotion": "mind",
+  "lifestyle": "health",
+  "physicalCondition": "health",
+  "schoolLife": "society",
+  "relationship": "society",
+  "college": "career",
+  "exam": "career"
+};
+
 // HTML要素
 const userIdElem = document.getElementById("user-id");
 const userPointsElem = document.getElementById("user-points");
@@ -70,17 +89,16 @@ const answerSection = document.getElementById("answer-section");
 // ユーザー情報
 let currentUserUID = null;
 let currentUserID  = null;
-let questionOwnerUID = null; // ← 質問者UIDを保持
-
-// 質問IDの取得
-  const urlParams = new URLSearchParams(window.location.search);
-  const questionId = urlParams.get("id");
-  if(!questionId){
-   alert("質問が見つかりません");
-   throw new Error("質問IDなし");
- }
-
+let questionOwnerUID = null; 
 let questionTopic = null;
+
+// 質問IDの取得（固定ではなくURLから）
+const urlParams = new URLSearchParams(window.location.search);
+const questionId = urlParams.get("id");
+if(!questionId){
+  alert("質問が見つかりません");
+  throw new Error("質問IDなし");
+}
 
 // 質問読み込み
 async function loadQuestion() {
@@ -96,7 +114,6 @@ async function loadQuestion() {
     document.getElementById("question-content").after(tsElem);
 
     questionOwnerUID = data.userUID || null;
-
     questionTopic = data.topic || null;
 
     if (currentUserUID && currentUserUID === questionOwnerUID) {
@@ -107,10 +124,9 @@ async function loadQuestion() {
   }
 }
 
-// 回答読み込み（省略：既存のコードを利用）
+// 回答読み込み（ページネーション付き）
 const pageSize = 5;
 let lastAnswerCursor = null;
-let loadMoreBound = false;
 let firstAnswersLoaded = false;
 
 async function loadAnswersPage() {
@@ -155,6 +171,7 @@ async function loadAnswersPage() {
       info.style.color = "gray";
       likeSection.appendChild(info);
     } else if (currentUserUID) {
+      // いいねボタン生成
       const likeBtn = document.createElement("button");
       likeBtn.classList.add("like-button");
       likeBtn.innerHTML = `<svg class="heart-icon" viewBox="0 0 24 24" width="24" height="24">
@@ -165,6 +182,42 @@ async function loadAnswersPage() {
                  c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
       </svg>`;
       likeSection.appendChild(likeBtn);
+
+      // いいね済みかチェック
+      const likeRef = doc(db, "questions", questionId, "answers", answer.id, "likes", currentUserUID);
+      const likeSnap = await getDoc(likeRef);
+
+      if (likeSnap.exists()) {
+        likeBtn.querySelector("path").setAttribute("fill", "pink");
+        likeBtn.disabled = true;
+      } else {
+        likeBtn.addEventListener("click", async () => {
+          const newSnap = await getDoc(likeRef);
+          if (newSnap.exists()) {
+            alert("この回答にはすでにいいねしています。");
+            return;
+          }
+
+          // 自分のユーザーデータ更新
+          const meRef = doc(db, "users", currentUserUID);
+          const category = topicMap[questionTopic];
+          const field = "l_" + category;
+
+          await setDoc(likeRef, {
+            userUID: currentUserUID,
+            timestamp: serverTimestamp()
+          });
+
+          await updateDoc(meRef, {
+            points: increment(1),
+            [field]: increment(1),
+            likeCount: increment(1)
+          });
+
+          likeBtn.querySelector("path").setAttribute("fill", "pink");
+          likeBtn.disabled = true;
+        });
+      }
     } else {
       const info = document.createElement("span");
       info.textContent = "（ログインするといいねできます）";
@@ -204,7 +257,12 @@ document.getElementById("submit-answer").addEventListener("click", async ()=>{
   await updateDoc(doc(db,"questions",questionId),{ answerCount: increment(1) });
 
   if(currentUserUID){
-    await updateDoc(doc(db,"users",currentUserUID),{ points: increment(3) }).catch(console.error);
+    const category = topicMap[questionTopic];
+    const field = "a_" + category;
+    await updateDoc(doc(db,"users",currentUserUID),{ 
+      points: increment(3),
+      [field]: increment(1)
+    }).catch(console.error);
   }
 
   alert("回答を投稿しました");
@@ -246,7 +304,7 @@ onAuthStateChanged(auth, async (user) => {
 
       if (!initialLoaded) {
         initialLoaded = true;
-        loadQuestion().then(()=>{ // ← 質問読み込み後に判定
+        loadQuestion().then(()=>{ 
           loadAnswersPage();
         });
         loadMoreBtn.onclick = () => loadAnswersPage();
