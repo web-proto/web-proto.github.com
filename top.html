@@ -47,7 +47,7 @@
           <a href="questions.html?topic=japanese">国語</a>
           <a href="questions.html?topic=math">数学</a>
           <a href="questions.html?topic=english">英語</a>
-          <a href="questions.html?topic=science">理解</a>
+          <a href="questions.html?topic=science">理科</a>
           <a href="questions.html?topic=socialStudies">社会</a>
           <a href="questions.html?topic=inquiry">探究</a>
           <a href="questions.html?topic=otherSubjects">副教科/その他</a>
@@ -118,7 +118,7 @@
     const userPointsElem = document.getElementById("user-points");
     const logoutBtn = document.getElementById("logout-btn");
 
-    // 🔹ログアウト処理
+    // ログアウト処理
     logoutBtn.addEventListener("click", async () => {
       try {
         await auth.signOut();
@@ -129,7 +129,7 @@
       }
     });
 
-    // 🔹ログイン状態監視
+    // ログイン状態監視
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
         window.location.href = "index.html";
@@ -153,14 +153,14 @@
         }
       });
 
-      // 🔹自分の質問表示（最新5件）
+      // 自分の質問表示（最新3件）
       async function loadMyQuestions() {
         const answeredQuestionsElem = document.getElementById("answeredQuestions");
         const q = query(
           collection(db, "questions"),
           where("userUID", "==", userUID),
           orderBy("timestamp", "desc"),
-          limit(5)
+          limit(3)
         );
 
         try {
@@ -192,7 +192,7 @@
         }
       }
 
-      // 🔹未回答かつ他人の質問 → 答えてみませんか？
+      // 未回答かつ他人の質問 → 答えてみませんか？
       async function loadUnansweredQuestions() {
         const listElem = document.getElementById("questionList");
         try {
@@ -214,9 +214,9 @@
             return;
           }
 
-          // JSでランダムに5件選ぶ
+          // JSでランダムに3件選ぶ
           const shuffled = unanswered.sort(() => Math.random() - 0.5);
-          const toShow = shuffled.slice(0, 5);
+          const toShow = shuffled.slice(0, 3);
 
           listElem.innerHTML = "";
           toShow.forEach(q => {
@@ -244,7 +244,7 @@
       loadUnansweredQuestions();
     });
 
-    // 🔹トピック展開処理
+    // トピック展開処理
     document.addEventListener("DOMContentLoaded", () => {
       const topics = document.querySelectorAll(".topic, dd[data-topic]");
       topics.forEach(item => {
