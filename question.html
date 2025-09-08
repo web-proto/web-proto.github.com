@@ -298,6 +298,9 @@ document.getElementById("submit-answer").addEventListener("click", async () => {
   const content = document.getElementById("answer-input").value.trim();
   if (!content) { alert("回答を入力してください"); return; }
 
+  const proceed = confirm("否定的/攻撃的な内容は含まれていませんか？\n(投稿内容は修正できません)");
+  if (!proceed) return;
+
   if (!currentUserUID) { alert("ログイン状態を確認できません"); return; }
   if (currentUserUID === questionOwnerUID) { alert("自分の質問には回答できません。"); return; }
 
@@ -313,7 +316,7 @@ document.getElementById("submit-answer").addEventListener("click", async () => {
     // questions の answerCount を更新
     await updateDoc(doc(db, "questions", questionId), { answerCount: increment(1) });
 
-    // 回答者の a_<category> を +1（総合 points は変更しない仕様）
+    // 回答者の a_<category> を +1
     const category = topicMap[questionTopic];
     if (category) {
       const userRef = doc(db, "users", currentUserUID);
