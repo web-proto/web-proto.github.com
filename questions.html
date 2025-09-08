@@ -79,12 +79,31 @@ let currentUserUID = null;
 let lastVisible = null;
 const pageSize = 5;
 
+// URLパラメータからトピック取得
 const params = new URLSearchParams(window.location.search);
 const topic = params.get("topic") || "math";
-const topicMap = { japanese: "国語", math: "数学", science: "理解", socialStudies: "社会", english: "英語", otherSubjects: "その他の教科", personality: "性格", emotion: "感情", lifestyle: "生活習慣", physicalCondition: "体調管理", inquiry: "探究", schoolLife: "学校生活", relationship: "人間関係", college: "大学", exam: "受験"};
+
+const topicMap = { 
+  japanese: "国語", math: "数学", science: "理科", socialStudies: "社会", english: "英語", otherSubjects: "その他の教科", inquiry:"探究",
+  personality: "性格", emotion: "感情", 
+  lifestyle: "生活習慣", physicalCondition: "体調管理", 
+  schoolLife: "学校生活", relationship: "人間関係", 
+  college: "大学", exam: "受験"
+};
+
+// トピック表示
 document.getElementById("topic-title").textContent = `${topicMap[topic] || topic}についての質問一覧`;
 
-// 🔐 ログイン監視 + 偽ID・ポイント表示
+// トピック → 大分類マッピング
+const categoryMap = {
+  japanese: "study", math: "study", english: "study", science: "study", socialStudies: "study", inquiry:"study", otherSubjects: "study",
+  personality: "mind", emotion: "mind",
+  lifestyle: "health", physicalCondition: "health",
+  schoolLife: "society", relationship: "society",
+  college: "career", exam: "career"
+};
+
+// 🔐 ログイン監視
 onAuthStateChanged(auth, (user) => {
   if (!user) { window.location.href="index.html"; return; }
   currentUserUID = user.uid;
@@ -110,17 +129,35 @@ document.getElementById("post-question").addEventListener("click", async () => {
   if (!currentUserUID) { alert("ログイン状態を確認できません"); return; }
 
   const docRef = doc(collection(db, "questions"));
-  await setDoc(docRef, { uid: docRef.id, userUID: currentUserUID, title, content, topic, timestamp: serverTimestamp(), answerCount: 0 });
+  await setDoc(docRef, { 
+    uid: docRef.id, 
+    userUID: currentUserUID, 
+    title, 
+    content, 
+    topic, 
+    timestamp: serverTimestamp(), 
+    answerCount: 0 
+  });
 
-  // 投稿ボーナス加算
-  try { await updateDoc(doc(db,"users",currentUserUID),{points: increment(3)}); } 
-  catch(e){ console.error("ポイント加算エラー:",e); }
+  // ポイント加算処理
+  const category = categoryMap[topic];
+  if (category) {
+    try {
+      await updateDoc(doc(db,"users",currentUserUID), {
+        [`q_${category}`]: increment(1),
+        points: increment(3)
+      });
+      console.log(`✅ ${category} 質問ポイントを加算しました`);
+    } catch(e) {
+      console.error("ポイント加算エラー:",e);
+    }
+  }
 
   alert("質問を投稿しました！");
   location.reload();
 });
 
-// 🔎 通常の質問取得（ページネーション）
+// 🔎 質問取得（ページネーション）
 async function loadQuestions() {
   const q = lastVisible
     ? query(collection(db,"questions"), where("topic","==",topic), orderBy("timestamp","desc"), startAfter(lastVisible), limit(pageSize))
@@ -176,8 +213,6 @@ async function performSearch(queryText){
   currentIndex=0;
   questionList.innerHTML="";
   displaySearchResults();
-
-  // 検索解除ボタンを表示
   clearSearchBtn.style.display = "inline-block";
 }
 
@@ -188,13 +223,10 @@ function displaySearchResults(){
   loadMoreBtn.style.display = currentIndex<searchResults.length?"block":"none";
 }
 
-// 🔎 ボタンで検索を実行
+// 🔎 検索ボタン
 document.getElementById('searchButton').addEventListener('click', ()=>{
   const queryText = document.getElementById('searchBox').value.trim();
-  if(queryText===''){ 
-    resetSearch();
-    return; 
-  }
+  if(queryText===''){ resetSearch(); return; }
   postForm.style.display="none";
   performSearch(queryText);
 });
@@ -206,7 +238,7 @@ function resetSearch(){
   questionList.innerHTML="読み込み中..."; 
   loadMoreBtn.style.display="none"; 
   postForm.style.display="block"; 
-  clearSearchBtn.style.display="none"; // 検索解除ボタンを非表示
+  clearSearchBtn.style.display="none"; 
   loadQuestions(); 
 }
 
