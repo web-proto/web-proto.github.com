@@ -64,10 +64,6 @@ button {
   transition: background-color 0.3s;
 }
 
-button:hover {
-  background-color: #00695c;
-}
-
 .like-section {
   margin-top: 10px;
 }
@@ -87,12 +83,12 @@ button:hover {
   fill: none;
   stroke: black;
   stroke-width: 2;
-  transition: fill 0.3s ease, stroke 0.3s ease;
+  transition: fill 0.3s ease;
 }
 
-.liked .heart-icon {
-  fill: pink;
-  stroke: pink;
+.like-button.liked .heart-icon {
+  fill: pink;   /* ← 中だけピンク */
+  stroke: black; /* ← 枠は黒を維持 */
 }
 
 .answer {
@@ -115,13 +111,12 @@ hr {
   border-top: 1px solid #ccc;
   margin: 15px 0;
 }
-.like-button.liked svg {
-  fill: pink;
-}
+
 .like-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
 #go-top-detail {
   position: fixed !important;
   bottom: 20px !important;
@@ -161,7 +156,7 @@ hr {
   font-size: 13px !important;
   font-weight: bold !important;
   cursor: pointer !important;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important;
+  box-shadow: 0 0px 6px rgba(0,0,0,0.2) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
