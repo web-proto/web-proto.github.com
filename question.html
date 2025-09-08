@@ -293,7 +293,6 @@ async function loadAnswersPage() {
 }
 
 /* ===== 回答投稿処理 =====
-   仕様：回答投稿時は回答者の a_<category> を +1 する（総合 points は増やさない）
 */
 document.getElementById("submit-answer").addEventListener("click", async () => {
   const content = document.getElementById("answer-input").value.trim();
@@ -319,6 +318,7 @@ document.getElementById("submit-answer").addEventListener("click", async () => {
     if (category) {
       const userRef = doc(db, "users", currentUserUID);
       await updateDoc(userRef, {
+        points: increment(3),
         ["a_" + category]: increment(1)
       }).catch(err => {
         console.error("a_category 更新エラー:", err);
