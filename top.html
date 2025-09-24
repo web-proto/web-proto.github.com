@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>トップ画面</title>
-  <link rel="stylesheet" href="top.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="top-bar">
@@ -199,27 +199,24 @@
           const questionsRef = collection(db, "questions");
           const q = query(
             questionsRef,
-            where("answerCount", "==", 0)
-            // .limit(100) // 必要に応じて最大件数を制限する場合
+            where("answerCount", "<", 3), // 回答数制限指定
+            orderBy("answerCount", "asc"),
+            limit(3) // 表示数指定
           );
 
           const snapshot = await getDocs(q);
 
-          const unanswered = snapshot.docs
+          const candidates = snapshot.docs
             .map(doc => ({ id: doc.id, ...doc.data() }))
             .filter(q => q.userUID !== userUID);
 
-          if (unanswered.length === 0) {
-            listElem.innerHTML = "<li>まだ答えてほしい質問はありません。</li>";
+          if (candidates.length === 0) {
+            listElem.innerHTML = "<li>答えてほしい質問はありません。</li>";
             return;
           }
 
-          // JSでランダムに3件選ぶ
-          const shuffled = unanswered.sort(() => Math.random() - 0.5);
-          const toShow = shuffled.slice(0, 3);
-
           listElem.innerHTML = "";
-          toShow.forEach(q => {
+          candidates.forEach(q => {
             const a = document.createElement("a");
             a.href = `question.html?id=${q.id}`;
             a.className = "question-box";
@@ -235,7 +232,7 @@
           });
 
         } catch (error) {
-          console.error("未回答質問の取得エラー:", error);
+          console.error("質問取得エラー:", error);
           listElem.innerHTML = "<li>質問の取得中にエラーが発生しました。</li>";
         }
       }
