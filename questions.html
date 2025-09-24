@@ -186,7 +186,7 @@ function displayQuestions(questions,isFirstPage=false){
     const link = document.createElement("a");
     link.href = `question.html?id=${uid}`;
     link.classList.add("question-box");
-    link.innerHTML = `<strong>${title}</strong><p>${content}</p><small>${time} | 回答数: ${answerCount}</small>`;
+    link.innerHTML = `<strong>${title}</strong><p>${content}</p><small>${time} | 回答数 : ${answerCount}</small>`;
     questionList.appendChild(link);
   });
 }
