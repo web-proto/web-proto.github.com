@@ -182,7 +182,7 @@ function displayQuestions(questions,isFirstPage=false){
   if(isFirstPage) questionList.innerHTML="";
   questions.forEach(data=>{
     const { uid, title, content, timestamp, answerCount } = data;
-    const time = timestamp?.toDate?.().toLocaleString("ja-JP") || "日時不明";
+    const time = timestamp?.toDate?.().toLocaleDateString("ja-JP") || "日時不明";
     const link = document.createElement("a");
     link.href = `question.html?id=${uid}`;
     link.classList.add("question-box");
