@@ -115,7 +115,7 @@ async function loadQuestion() {
     const data = docSnap.data();
     document.getElementById("question-title").textContent = data.title ?? "";
     document.getElementById("question-content").textContent = data.content ?? "";
-    const time = data.timestamp?.toDate?.()?.toLocaleString("ja-JP") || "日時不明";
+    const time = data.timestamp?.toDate?.()?.toLocaleDateString("ja-JP") || "日時不明";
     const tsElem = document.createElement("small");
     tsElem.textContent = time;
     document.getElementById("question-content").after(tsElem);
@@ -170,7 +170,7 @@ async function loadAnswersPage() {
       div.classList.add("answer");
 
       const content = answer.content || "（内容なし）";
-      const timestamp = answer.timestamp?.toDate?.()?.toLocaleString("ja-JP") || "日時不明";
+      const timestamp = answer.timestamp?.toDate?.()?.toLocaleDateString("ja-JP") || "日時不明";
 
       div.innerHTML = `
         <p class="answer-content"></p>
