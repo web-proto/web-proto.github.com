@@ -155,9 +155,8 @@ document.getElementById("post-question").addEventListener("click", async () => {
     try {
       await updateDoc(doc(db,"users",currentUserUID), {
         [`q_${category}`]: increment(1),
-        points: increment(3)
+        points: increment(5)
       });
-      console.log(`✅ ${category} 質問ポイントを加算しました`);
     } catch(e) {
       console.error("ポイント加算エラー:",e);
     }
