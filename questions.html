@@ -6,16 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>質問一覧</title>
   <link rel="stylesheet" href="questions.css">
-  <style>
-.promo {
-  margin-left: 12px;
-  font-weight: 700;
-  color: #fff;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 13px;
-}
- </style>
 </head>
 <body>
 
@@ -24,7 +14,6 @@
     <div class="user-info">
       <span id="user-id">ID : 読み込み中…</span>
       <span id="user-points">ポイント : 読み込み中…</span>
-      <span id="promo" class="promo">ポイント増量キャンペーン中！</span>
     </div>
   </header>
 
@@ -156,7 +145,7 @@ document.getElementById("post-question").addEventListener("click", async () => {
     try {
       await updateDoc(doc(db,"users",currentUserUID), {
         [`q_${category}`]: increment(1),
-        points: increment(5)
+        points: increment(3)
       });
     } catch(e) {
       console.error("ポイント加算エラー:",e);
