@@ -192,50 +192,76 @@
         }
       }
 
-      // 未回答かつ他人の質問 → 答えてみませんか？
-      async function loadUnansweredQuestions() {
-        const listElem = document.getElementById("questionList");
-        try {
-          const questionsRef = collection(db, "questions");
-          const q = query(
-            questionsRef,
-            where("answerCount", "<", 3), // 回答数制限指定
-            orderBy("answerCount", "asc"),
-            limit(3) // 表示数指定
-          );
+// 未回答かつ他人の質問 → 答えてみませんか？（回答数順＋同数内ランダム＋3件）
+async function loadUnansweredQuestions() {
+  const listElem = document.getElementById("questionList");
 
-          const snapshot = await getDocs(q);
+  try {
+    // 1. 回答2件未満の全件を取得（順番は後で整える）
+    const q = query(
+      collection(db, "questions"),
+      where("answerCount", "<", 2)
+    );
+    const snapshot = await getDocs(q);
 
-          const candidates = snapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter(q => q.userUID !== userUID);
+    // 自分の質問は除外
+    let candidates = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(q => q.userUID !== userUID);
 
-          if (candidates.length === 0) {
-            listElem.innerHTML = "<li>答えてほしい質問はありません。</li>";
-            return;
-          }
+    if (candidates.length === 0) {
+      listElem.innerHTML = "<li>答えてほしい質問はありません。</li>";
+      return;
+    }
 
-          listElem.innerHTML = "";
-          candidates.forEach(q => {
-            const a = document.createElement("a");
-            a.href = `question.html?id=${q.id}`;
-            a.className = "question-box";
+    // ★ 回答数順に昇順ソート（0 → 1 → 2）
+    candidates.sort((a, b) => a.answerCount - b.answerCount);
 
-            const p = document.createElement("p");
-            p.className = "question-title";
-            p.textContent = q.title || "タイトルなし";
+    // ★ 回答数ごとに分ける
+    const group0 = candidates.filter(q => q.answerCount === 0);
+    const group1 = candidates.filter(q => q.answerCount === 1);
+    const group2 = candidates.filter(q => q.answerCount === 2);
 
-            a.appendChild(p);
-            const li = document.createElement("li");
-            li.appendChild(a);
-            listElem.appendChild(li);
-          });
-
-        } catch (error) {
-          console.error("質問取得エラー:", error);
-          listElem.innerHTML = "<li>質問の取得中にエラーが発生しました。</li>";
-        }
+    // ★ 同じ回答数の中でランダムシャッフル
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
       }
+      return arr;
+    }
+    shuffle(group0);
+    shuffle(group1);
+    shuffle(group2);
+
+    // ★ 回答数順に並べ直す（0群 → 1群 → 2群）
+    const orderedRandom = [...group0, ...group1, ...group2];
+
+    // ★ 上位3件だけ使う
+    const picks = orderedRandom.slice(0, 3);
+
+    // 4. 表示
+    listElem.innerHTML = "";
+    picks.forEach(q => {
+      const li = document.createElement("li");
+      const a = document.createElement("a");
+      a.href = `question.html?id=${q.id}`;
+      a.className = "question-box";
+
+      const p = document.createElement("p");
+      p.className = "question-title";
+      p.textContent = q.title || "タイトルなし";
+
+      a.appendChild(p);
+      li.appendChild(a);
+      listElem.appendChild(li);
+    });
+
+  } catch (error) {
+    console.error("質問取得エラー:", error);
+    listElem.innerHTML = "<li>質問の取得中にエラーが発生しました。</li>";
+  }
+}
 
       loadMyQuestions();
       loadUnansweredQuestions();
