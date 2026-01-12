@@ -253,6 +253,7 @@ async function loadAnswersPage() {
               // 押した人に対してポイントと l_<category> と likeCount を加算
               const updates = {
                 points: increment(1),
+                monthly_points: increment(1),
                 likeCount: increment(1)
               };
               if (category) updates["l_" + category] = increment(1);
@@ -322,6 +323,7 @@ document.getElementById("submit-answer").addEventListener("click", async () => {
       const userRef = doc(db, "users", currentUserUID);
       await updateDoc(userRef, {
         points: increment(3),
+        monthly_points: increment(3),
         ["a_" + category]: increment(1)
       }).catch(err => {
         console.error("a_category 更新エラー:", err);
