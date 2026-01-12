@@ -145,6 +145,7 @@ document.getElementById("post-question").addEventListener("click", async () => {
     try {
       await updateDoc(doc(db,"users",currentUserUID), {
         [`q_${category}`]: increment(1),
+        monthly_points: increment(3),
         points: increment(3)
       });
     } catch(e) {
