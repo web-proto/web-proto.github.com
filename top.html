@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>トップ画面</title>
-  <link rel="stylesheet" href="top.css"
+  <link rel="stylesheet" href="top.css">
 </head>
 <body>
   <header class="top-bar">
@@ -92,12 +92,11 @@
     </div>
   </div>
 
-  <!-- Firebase SDK & スクリプト -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
     import {
       getFirestore, doc, collection, query, where,
-      orderBy, limit, getDocs, onSnapshot
+      orderBy, limit, getDocs, getDoc
     } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
 
@@ -118,18 +117,11 @@
     const userPointsElem = document.getElementById("user-points");
     const logoutBtn = document.getElementById("logout-btn");
 
-    // ログアウト処理
     logoutBtn.addEventListener("click", async () => {
-      try {
-        await auth.signOut();
-        window.location.href = "index.html";
-      } catch (error) {
-        console.error("ログアウトエラー:", error);
-        alert("ログアウトに失敗しました。");
-      }
+      await auth.signOut();
+      window.location.href = "index.html";
     });
 
-    // ログイン状態監視
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
         window.location.href = "index.html";
@@ -139,23 +131,17 @@
       const userUID = user.uid;
       const userRef = doc(db, "users", userUID);
 
-      // Firestoreから偽IDとポイントを取得して表示
-      onSnapshot(userRef, (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          const fakeID = data.userID || "不明";
-          const points = data.points || 0;
-          userIdElem.textContent = `ID : ${fakeID}`;
-          userPointsElem.textContent = `ポイント : ${points}`;
-        } else {
-          userIdElem.textContent = "ID : データなし";
-          userPointsElem.textContent = "ポイント : データなし";
-        }
-      });
+      /* ▼ リアルタイムをやめて1回読み取り */
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const data = userSnap.data();
+        userIdElem.textContent = `ID : ${data.userID || "不明"}`;
+        userPointsElem.textContent = `ポイント : ${data.points || 0}`;
+      }
 
-      // 自分の質問表示（最新3件）
+      /* 自分の質問（最新3件） */
       async function loadMyQuestions() {
-        const answeredQuestionsElem = document.getElementById("answeredQuestions");
+        const elem = document.getElementById("answeredQuestions");
         const q = query(
           collection(db, "questions"),
           where("userUID", "==", userUID),
@@ -163,117 +149,84 @@
           limit(3)
         );
 
-        try {
-          const snapshot = await getDocs(q);
-          answeredQuestionsElem.innerHTML = "";
+        const snap = await getDocs(q);
+        elem.innerHTML = "";
 
-          if (snapshot.empty) {
-            answeredQuestionsElem.innerHTML = "<li>まだ質問していません。</li>";
-          } else {
-            snapshot.forEach(docSnap => {
-              const data = docSnap.data();
-              const a = document.createElement("a");
-              a.href = `question.html?id=${docSnap.id}`;
-              a.className = "question-box";
-
-              const p = document.createElement("p");
-              p.className = "question-title";
-              p.textContent = data.title || "タイトルなし";
-
-              a.appendChild(p);
-              const li = document.createElement("li");
-              li.appendChild(a);
-              answeredQuestionsElem.appendChild(li);
-            });
-          }
-        } catch (e) {
-          console.error("質問取得エラー:", e);
-          answeredQuestionsElem.innerHTML = "<li>質問の取得中にエラーが発生しました。</li>";
+        if (snap.empty) {
+          elem.innerHTML = "<li>まだ質問していません。</li>";
+          return;
         }
+
+        snap.forEach(d => {
+          const a = document.createElement("a");
+          a.href = `question.html?id=${d.id}`;
+          a.className = "question-box";
+          a.textContent = d.data().title || "タイトルなし";
+
+          const li = document.createElement("li");
+          li.appendChild(a);
+          elem.appendChild(li);
+        });
       }
 
-// 未回答かつ他人の質問 → 答えてみませんか？（回答数順＋同数内ランダム＋3件）
-async function loadUnansweredQuestions() {
-  const listElem = document.getElementById("questionList");
+      /* 答えてみませんか？（負荷削減版） */
+      async function loadUnansweredQuestions() {
+        const listElem = document.getElementById("questionList");
 
-  try {
-    // 1. 回答2件未満の全件を取得（順番は後で整える）
-    const q = query(
-      collection(db, "questions"),
-      where("answerCount", "<", 2)
-    );
-    const snapshot = await getDocs(q);
+        const q = query(
+          collection(db, "questions"),
+          where("answerCount", "<", 2),
+          limit(15) // ★ Firestore側で制限
+        );
 
-    // 自分の質問は除外
-    let candidates = snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(q => q.userUID !== userUID);
+        const snap = await getDocs(q);
 
-    if (candidates.length === 0) {
-      listElem.innerHTML = "<li>答えてほしい質問はありません。</li>";
-      return;
-    }
+        let candidates = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(q => q.userUID !== userUID);
 
-    // ★ 回答数順に昇順ソート（0 → 1 → 2）
-    candidates.sort((a, b) => a.answerCount - b.answerCount);
+        if (candidates.length === 0) {
+          listElem.innerHTML = "<li>答えてほしい質問はありません。</li>";
+          return;
+        }
 
-    // ★ 回答数ごとに分ける
-    const group0 = candidates.filter(q => q.answerCount === 0);
-    const group1 = candidates.filter(q => q.answerCount === 1);
-    const group2 = candidates.filter(q => q.answerCount === 2);
+        candidates.sort((a, b) => a.answerCount - b.answerCount);
 
-    // ★ 同じ回答数の中でランダムシャッフル
-    function shuffle(arr) {
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
+        const shuffle = arr => {
+          for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+          }
+          return arr;
+        };
+
+        const ordered = [
+          ...shuffle(candidates.filter(q => q.answerCount === 0)),
+          ...shuffle(candidates.filter(q => q.answerCount === 1))
+        ];
+
+        listElem.innerHTML = "";
+        ordered.slice(0, 5).forEach(q => {
+          const a = document.createElement("a");
+          a.href = `question.html?id=${q.id}`;
+          a.className = "question-box";
+          a.textContent = q.title || "タイトルなし";
+
+          const li = document.createElement("li");
+          li.appendChild(a);
+          listElem.appendChild(li);
+        });
       }
-      return arr;
-    }
-    shuffle(group0);
-    shuffle(group1);
-    shuffle(group2);
-
-    // ★ 回答数順に並べ直す（0群 → 1群 → 2群）
-    const orderedRandom = [...group0, ...group1, ...group2];
-
-    // ★ 上位3件だけ使う
-    const picks = orderedRandom.slice(0, 5);
-
-    // 4. 表示
-    listElem.innerHTML = "";
-    picks.forEach(q => {
-      const li = document.createElement("li");
-      const a = document.createElement("a");
-      a.href = `question.html?id=${q.id}`;
-      a.className = "question-box";
-
-      const p = document.createElement("p");
-      p.className = "question-title";
-      p.textContent = q.title || "タイトルなし";
-
-      a.appendChild(p);
-      li.appendChild(a);
-      listElem.appendChild(li);
-    });
-
-  } catch (error) {
-    console.error("質問取得エラー:", error);
-    listElem.innerHTML = "<li>質問の取得中にエラーが発生しました。</li>";
-  }
-}
 
       loadMyQuestions();
       loadUnansweredQuestions();
     });
 
-    // トピック展開処理
     document.addEventListener("DOMContentLoaded", () => {
-      const topics = document.querySelectorAll(".topic, dd[data-topic]");
-      topics.forEach(item => {
-        item.addEventListener("click", function () {
-          const subtopics = document.getElementById(this.dataset.topic);
-          if (subtopics) subtopics.classList.toggle("show");
+      document.querySelectorAll(".topic, dd[data-topic]").forEach(item => {
+        item.addEventListener("click", () => {
+          const sub = document.getElementById(item.dataset.topic);
+          if (sub) sub.classList.toggle("show");
         });
       });
     });
