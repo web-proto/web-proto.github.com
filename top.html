@@ -11,6 +11,7 @@
     <div class="user-info">
       <span id="user-id">ID : 読み込み中…</span>
       <span id="user-points">ポイント : 読み込み中…</span>
+      <div class="user-stats" id="user-stats">読み込み中</div>
     </div>
     <button id="logout-btn" style="
       margin-left: 20px;
@@ -39,7 +40,7 @@
     <div class="topics-container">
       <h2>トピックで探す</h2>
       <dl class="topics">
-        <div class="topic-item">
+                <div class="topic-item">
           <dt class="topic" data-topic="study">📚 学習</dt>
           <dd data-topic="study">わからない問題・勉強法など</dd>
         </div>
@@ -115,6 +116,7 @@
 
     const userIdElem = document.getElementById("user-id");
     const userPointsElem = document.getElementById("user-points");
+    const statsElem = document.getElementById("user-stats");
     const logoutBtn = document.getElementById("logout-btn");
 
     logoutBtn.addEventListener("click", async () => {
@@ -131,15 +133,33 @@
       const userUID = user.uid;
       const userRef = doc(db, "users", userUID);
 
-      /* ▼ リアルタイムをやめて1回読み取り */
+      /* ===== ユーザー情報（1回読み取り） ===== */
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
         const data = userSnap.data();
+
         userIdElem.textContent = `ID : ${data.userID || "不明"}`;
         userPointsElem.textContent = `ポイント : ${data.points || 0}`;
+
+        /* ===== ここが追加：変数表示 ===== */
+        const categories = ["study", "mind", "health", "society", "career"];
+        const types = ["q", "a", "l"];
+
+        const parts = [];
+        categories.forEach(cat => {
+          types.forEach(t => {
+            const key = `${t}_${cat}`;
+            parts.push(data[key] ?? 0);
+          });
+        });
+
+        // q_study.a_study.l_study.q_mind... の順で表示
+        statsElem.textContent = parts.join(",");
+      } else {
+        statsElem.textContent = "データなし";
       }
 
-      /* 自分の質問（最新3件） */
+      /* ===== 自分の質問（最新3件） ===== */
       async function loadMyQuestions() {
         const elem = document.getElementById("answeredQuestions");
         const q = query(
@@ -169,14 +189,14 @@
         });
       }
 
-      /* 答えてみませんか？（負荷削減版） */
+      /* ===== 答えてみませんか？ ===== */
       async function loadUnansweredQuestions() {
         const listElem = document.getElementById("questionList");
 
         const q = query(
           collection(db, "questions"),
           where("answerCount", "<", 2),
-          limit(15) // ★ Firestore側で制限
+          limit(15)
         );
 
         const snap = await getDocs(q);
